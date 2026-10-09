@@ -8,10 +8,11 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.util.Util;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 
 
 public class DurabilityWarningClient implements ClientModInitializer {
-	private boolean warningSoundPlayed = false;
+	private ItemStack lastWarnedStack;
 	private long secondBingAt = -1;
 	@Override
 	public void onInitializeClient() {
@@ -20,26 +21,34 @@ public class DurabilityWarningClient implements ClientModInitializer {
 			DurabilityWarning.id("warning"),
 			(graphics, deltaTracker) -> {
 				var player = Minecraft.getInstance().player;
-				if (player == null) return;
+if (player == null) {
+    lastWarnedStack = null;
+    secondBingAt = -1;
+    return;
+}
 
-				var stack = player.getMainHandItem();
-				if (!stack.isDamageableItem()) return;
+var stack = player.getMainHandItem();
+if (!stack.isDamageableItem()) {
+    lastWarnedStack = null;
+    secondBingAt = -1;
+    return;
+}
 
 				int durabilityLeft = stack.getMaxDamage() - stack.getDamageValue();
 
 				if (durabilityLeft <= 10) {
-    if (!warningSoundPlayed) {
-        Minecraft.getInstance().getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.3F)
-        );
-        warningSoundPlayed = true;
-        secondBingAt = Util.getMillis() + 180;
-    } else if (secondBingAt != -1 && Util.getMillis() >= secondBingAt) {
-        Minecraft.getInstance().getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.6F)
-        );
-        secondBingAt = -1;
-    }
+    if (lastWarnedStack != stack) {
+    lastWarnedStack = stack;
+    Minecraft.getInstance().getSoundManager().play(
+            SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.3F)
+    );
+    secondBingAt = Util.getMillis() + 180;
+} else if (secondBingAt != -1 && Util.getMillis() >= secondBingAt) {
+    Minecraft.getInstance().getSoundManager().play(
+            SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.6F)
+    );
+    secondBingAt = -1;
+}
 
     Minecraft minecraft = Minecraft.getInstance();
 String warning = "Tool almost broken!";
@@ -57,8 +66,8 @@ graphics.text(
         true
 );
 } else {
-    warningSoundPlayed = false;
-    secondBingAt = -1;
+   lastWarnedStack = null;
+secondBingAt = -1;
 }
 			}
 			        );
